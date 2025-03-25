@@ -13,8 +13,8 @@ spec:
         app: static-website
     spec:
       containers:
-        - name: static-website-container  # ✅ FIXED (removed underscore)
-          image: kirubarp/final_repo:latest  # Your DockerHub repo
+        - name: static-website-container
+          image: kirubarp/final_repo:latest  # DockerHub repo
           ports:
             - containerPort: 80
 ---
@@ -23,11 +23,11 @@ kind: Service
 metadata:
   name: static-website-service
 spec:
-  type: LoadBalancer
+  type: NodePort  # ✅ FIXED: Changed from LoadBalancer to NodePort
   selector:
     app: static-website
   ports:
     - protocol: TCP
       port: 80
       targetPort: 80
-
+      nodePort: 30080  # ✅ Set NodePort to access from Minikube
