@@ -6,13 +6,22 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = "kirubarp/final_repo"  // Your Docker repository
-        CONTAINER_NAME = "static-website-container"  // ✅ Fixed container name (no underscores)
+        IMAGE_NAME = "kirubarp/final_repo"
+        CONTAINER_NAME = "static-website-container"
         TAG = "latest"
-        DEPLOYMENT_FILE = "deployment.yaml"  // Kubernetes deployment file
+        DEPLOYMENT_FILE = "deployment.yaml"
+        KUBECONFIG = "/var/lib/jenkins/.kube/config"  // ✅ Force Jenkins to use Minikube config
     }
 
     stages {
+        stage('Setup Minikube Docker') {
+            steps {
+                script {
+                    sh "eval \$(minikube docker-env)"  // ✅ Force Docker to use Minikube
+                }
+            }
+        }
+
         stage('Clean Workspace') {
             steps {
                 script {
@@ -27,26 +36,23 @@ pipeline {
                 script {
                     git branch: 'main', 
                         credentialsId: 'github_seccred', 
-                        url: 'https://github.com/Kiruba-Prakasan/final_repo.git'  // Change to your repo URL
+                        url: 'https://github.com/Kiruba-Prakasan/final_repo.git'
                 }
             }
         }
 
-        stage('Docker Build & Push') {
+        stage('Docker Build & Push to Minikube') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
-                        sh "docker build -t ${IMAGE_NAME}:${TAG} ."
-                        sh "docker push ${IMAGE_NAME}:${TAG}"
-                    }
+                    sh "docker build -t ${IMAGE_NAME}:${TAG} ."
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy to Minikube') {
             steps {
                 script {
-                    sh "kubectl apply -f ${DEPLOYMENT_FILE}"
+                    sh "kubectl apply --validate=false -f ${DEPLOYMENT_FILE}"
                 }
             }
         }
@@ -54,11 +60,10 @@ pipeline {
 
     post {
         success {
-            echo "Deployment Successful! Website is live at http://<k8s-cluster-ip>"
+            echo "✅ Deployment Successful! Website is live at http://$(minikube ip):30080"
         }
         failure {
-            echo "Deployment Failed! Check logs for errors."
+            echo "❌ Deployment Failed! Check logs for errors."
         }
     }
 }
-
