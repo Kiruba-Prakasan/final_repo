@@ -10,14 +10,14 @@ pipeline {
         CONTAINER_NAME = "static-website-container"
         TAG = "latest"
         DEPLOYMENT_FILE = "deployment.yaml"
-        KUBECONFIG = "/var/lib/jenkins/.kube/config"  // ✅ Force Jenkins to use Minikube config
+        KUBECONFIG = "/var/lib/jenkins/.kube/config"  // ✅ Ensure Jenkins uses Minikube kubeconfig
     }
 
     stages {
         stage('Setup Minikube Docker') {
             steps {
                 script {
-                    sh "eval \$(minikube docker-env)"  // ✅ Force Docker to use Minikube
+                    sh "eval \$(minikube docker-env)"  // ✅ Use Minikube's Docker
                 }
             }
         }
@@ -60,7 +60,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deployment Successful! Website is live at http://$(minikube ip):30080"
+            script {
+                def minikube_ip = sh(script: 'minikube ip', returnStdout: true).trim()
+                echo "✅ Deployment Successful! Website is live at http://${minikube_ip}:30080"
+            }
         }
         failure {
             echo "❌ Deployment Failed! Check logs for errors."
